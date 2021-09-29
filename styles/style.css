@@ -1,0 +1,18 @@
+:root {
+  --main-color: #1963d1;
+}
+thead {
+  background-color: var(--main-color);
+  color: white;
+}
+.btn-primary {
+  background-color: var(--main-color);
+}
+a.active {
+  color: var(--main-color) !important;
+}
+.card-form {
+  position: sticky;
+  left: 0;
+  top: 40px;
+}
