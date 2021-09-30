@@ -8,6 +8,9 @@ thead {
 .btn-primary {
   background-color: var(--main-color);
 }
+td > button {
+  margin-left: 5px;
+}
 a.active {
   color: var(--main-color) !important;
 }
