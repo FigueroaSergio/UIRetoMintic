@@ -1,4 +1,4 @@
-var strt={"skate":{"Name":"name","Brand":"brand","Category":"category_id","Model":"model"},"clients":{"Name":"name","Age":"age"},"messages":{"Messages":"messages"}}
+var strt={"skate":{"Name":"name","Brand":"brand","Category":"category_id","Model":"model"},"clients":{"Name":"name","Age":"age"},"messages":{"Message":"message"}}
 
 var dataClient={"clients":[
                         {"id":"1","name":"juanito","age":"16"},
