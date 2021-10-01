@@ -1,4 +1,6 @@
-var strt={"skate":{"Name":"name","Brand":"brand","Category":"category_id","Model":"model"},"clients":{"Name":"name","Age":"age"},"messages":{"Message":"message"}}
+var strt={"skate":{"ID":"id","Name":"name","Brand":"brand","Category":"category_id","Model":"model"},
+            "clients":{"ID":"id","Name":"name","Age":"age"},
+            "messages":{"ID":"id","Message":"message"}}
 
 var dataClient={"clients":[
                         {"id":"1","name":"juanito","age":"16"},
@@ -12,20 +14,25 @@ var dataClient={"clients":[
                     {"id":"1","message":"hola"},
                     {"id":"2","message":"chao"}
                 ],}
-
+var page="skate"
 document.addEventListener("DOMContentLoaded",function(){
     document.querySelectorAll('.nav-link').forEach(link=>{
         
         link.onclick=function(){
-            goTo(this.dataset.page)
+            page=this.dataset.page
+            goTo(page)
 
             link.classList.add("active")
             
         }
     })
-    
+    traerDatos("GET")
     form.render()
-    table.render()
+    
+    document.getElementById("submit").addEventListener("click", function(event){
+            
+        SubmitData(event)            
+      });
 })
 function goTo(data){
     link= document.querySelector(".active")
@@ -37,6 +44,43 @@ function goTo(data){
     form.render()
     table.render()
 }
+var idSubmit=null
+var action = "POST"
+function SubmitData(event=null){
+    
+    if(event!=null) event.preventDefault()
+    let data ={}
+    if(action=="DELETE"){
+       
+        data = {"id":parseInt(idSubmit)}
+        console.log(action)
+        traerDatos(action,data)
+    }
+    else{
+        data= getData()
+        traerDatos(action,data)
+    }
+      
+    console.log(data)
+    
+    idSubmit=null
+    action = "POST"
+    traerDatos("GET")
+    
+}
+function getData(){
+    let temp={}
+    for(let key in strt[page]){
+        let id= strt[page][key]
+        let ele= document.getElementById(id)
+        let data= ele.value
+        ele.value= null
+        if(data=='') data=null
+        temp[id]=data
+    } 
+    
+    return temp
+}
 class Form{
     constructor(fields){
       this.fields=fields
@@ -46,15 +90,17 @@ class Form{
     
    
     render=function(){
-        console.log(this.fields)
+        //console.log(this.fields)
         this.formView.innerHTML = ''
         var fragment = new DocumentFragment()
-        fragment.appendChild(this.createField("ID","id",0))
+        
 
         for( let key in this.fields){
-
+            let edit=1
             let name= this.fields[key]
-            fragment.appendChild(this.createField(key,name,1))
+            if(key=="ID")edit=0
+            
+            fragment.appendChild(this.createField(key,name,edit))
 
         }
         
@@ -102,7 +148,7 @@ class Table{
         let thead=document.createElement("thead")
         let tbody=document.createElement("tbody")
         let header=document.createElement("tr")
-        header.appendChild(this.createColumn("ID","th"))
+      
 
         for( let key in this.head){
             
@@ -115,8 +161,8 @@ class Table{
         this.dataSet.forEach(data => {
            //console.log(data)
            let tmp=document.createElement("tr")
-            for (let key in data){
-              tmp.appendChild(this.createColumn(data[key],"td"))  
+            for (let key in strt[page]){
+              tmp.appendChild(this.createColumn(data[strt[page][key]],"td"))  
               
             }
             let column = document.createElement("td")
@@ -129,7 +175,7 @@ class Table{
                 button2.classList.add("btn-outline-primary")
                 button2.textContent="D"
                 button.onclick=()=>{this.sendToEdit(data)}
-                button2.onclick=function(){alert("Eliminar")}
+                button2.onclick=()=>{this.delete(data)}
             column.appendChild(button)
             column.appendChild(button2)
             tmp.appendChild(column)
@@ -143,14 +189,21 @@ class Table{
         this.table.appendChild(fragment)
         
     }
+    delete = function(data){
+        idSubmit=data["id"]
+        action="DELETE"
+        SubmitData()   
+    }
     sendToEdit = function(data){
         
-        
+        idSubmit=data["id"]
+        action="PUT"
         for(let key in data){
             let ele = document.getElementById(key)
             ele.value=data[key]
 
         }
+        
     }
     
     createColumn = function(data,type){
@@ -164,5 +217,25 @@ class Table{
     }
 }
 
+
 var table=new Table(strt["skate"],dataClient["skate"])
 var form=new Form(strt["skate"])
+function traerDatos(method,data={}){
+$.ajax(
+    {
+    url: "https://g61c0c1b9664c1f-pruebas.adb.sa-saopaulo-1.oraclecloudapps.com/ords/admin/skate/skate",
+    type:method,
+    contentType: "application/json",
+    datatype:"JSON",
+    data:JSON.stringify(data), 
+    success: function(result){
+        if(method=="GET"){
+        console.log(result.items)
+        table.dataSet=result.items
+        table.render()  
+        }
+        
+        }   
+    })
+    
+}
