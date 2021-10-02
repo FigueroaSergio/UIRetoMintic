@@ -1,6 +1,6 @@
 var strt={"skate":{"ID":"id","Name":"name","Brand":"brand","Category":"category_id","Model":"model"},
-            "clients":{"ID":"id","Name":"name","Age":"age"},
-            "messages":{"ID":"id","Message":"message"}}
+            "client":{"ID":"id","Name":"name","EMAL":"email","Age":"age"},
+            "message":{"ID":"id","Message":"messagetext"}}
 
 var dataClient={"clients":[
                         {"id":"1","name":"juanito","age":"16"},
@@ -26,7 +26,9 @@ document.addEventListener("DOMContentLoaded",function(){
             
         }
     })
-    traerDatos("GET")
+    form.fields=strt[page]
+    table.head=strt[page]
+    traerDatos("GET",page)
     form.render()
     
     document.getElementById("submit").addEventListener("click", function(event){
@@ -37,10 +39,11 @@ document.addEventListener("DOMContentLoaded",function(){
 function goTo(data){
     link= document.querySelector(".active")
     link.classList.remove("active")
-    //console.log(strt[data])
+    console.log(data)
+    traerDatos("GET",data)
     form.fields=strt[data]
     table.head=strt[data]
-    table.dataSet=dataClient[data]
+  
     form.render()
     table.render()
 }
@@ -54,18 +57,18 @@ function SubmitData(event=null){
        
         data = {"id":parseInt(idSubmit)}
         console.log(action)
-        traerDatos(action,data)
+        traerDatos(action,page,data)
     }
     else{
         data= getData()
-        traerDatos(action,data)
+        traerDatos(action,page,data)
     }
       
     console.log(data)
     
     idSubmit=null
     action = "POST"
-    traerDatos("GET")
+    traerDatos("GET",page)
     
 }
 function getData(){
@@ -82,7 +85,7 @@ function getData(){
     return temp
 }
 class Form{
-    constructor(fields){
+    constructor(fields={}){
       this.fields=fields
        
     }
@@ -136,7 +139,7 @@ class Form{
    
 }
 class Table{
-    constructor(head,dataSet){
+    constructor(head={},dataSet={}){
         this.head=head
         this.dataSet =dataSet
         this.table = document.getElementById('table')
@@ -218,12 +221,15 @@ class Table{
 }
 
 
-var table=new Table(strt["skate"],dataClient["skate"])
-var form=new Form(strt["skate"])
-function traerDatos(method,data={}){
+var table=new Table()
+var form=new Form()
+function traerDatos(method,page,data={}){
+let URL=`https://g61c0c1b9664c1f-pruebas.adb.sa-saopaulo-1.oraclecloudapps.com/ords/admin/${page}/${page}`
+console.log(URL)
+console.log(data)
 $.ajax(
     {
-    url: "https://g61c0c1b9664c1f-pruebas.adb.sa-saopaulo-1.oraclecloudapps.com/ords/admin/skate/skate",
+    url: URL,
     type:method,
     contentType: "application/json",
     datatype:"JSON",
@@ -234,6 +240,7 @@ $.ajax(
         table.dataSet=result.items
         table.render()  
         }
+        return result
         
         }   
     })
