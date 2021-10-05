@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded",function(){
     form.render()
     
     document.getElementById("submit").addEventListener("click", function(event){
-            
         SubmitData(event)            
       });
 })
@@ -68,7 +67,8 @@ function SubmitData(event=null){
     
     idSubmit=null
     action = "POST"
-    traerDatos("GET",page)
+    setTimeout(() => {  traerDatos("GET",page) }, 1000)
+    
     
 }
 function getData(){
@@ -112,7 +112,9 @@ class Form{
         button.classList.add("btn-primary")
         button.textContent="Submit"
         button.setAttribute("id","submit")
-
+        button.addEventListener("click", function(event){
+            SubmitData(event)            
+          })
         fragment.appendChild(button)
         
         this.formView.appendChild(fragment)
