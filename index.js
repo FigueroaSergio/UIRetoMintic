@@ -10,7 +10,7 @@ var strt = {
       value: "2000",
       edition: true,
     },
-    category: { type: "text", maxlength: "45", edition: false },
+    category: { type: "select", for: "Category", edition: false },
   },
   Client: {
     name: { type: "text", maxlength: "45", edition: true },
@@ -26,16 +26,16 @@ var strt = {
   },
   Message: {
     messageText: { type: "text", maxlength: "250", edition: true },
-    client: { type: "text", maxlength: "45", edition: false },
-    skate: { type: "text", maxlength: "45", edition: false },
+    client: { type: "select", for: "Client", edition: false },
+    skate: { type: "select", for: "Skate", edition: false },
   },
   Category: {
     name: { type: "text", maxlength: "45", edition: true },
     description: { type: "text", maxlength: "250", edition: true },
   },
   Reservation: {
-    client: { type: "text", maxlength: "45", edition: true },
-    skate: { type: "text", maxlength: "45", edition: true },
+    client: { type: "select", for: "Client", edition: false },
+    skate: { type: "select", for: "Skate", edition: false },
     startDate: { type: "date", edition: true },
     devolutionDate: { type: "date", edition: true },
   },
@@ -43,7 +43,7 @@ var strt = {
 var tables = {
   Skate: ["name"],
 };
-var page = "Skate";
+var page = "Category";
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".nav-link").forEach((link) => {
     link.onclick = function () {
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
   form.fields = strt[page];
   table.head = strt[page];
-  traerDatos("GET", page);
+  traerDatos(page, true);
   form.render();
 
   document.getElementById("submit").addEventListener("click", function (event) {
@@ -66,7 +66,7 @@ function goTo(data) {
   link = document.querySelector(".active");
   link.classList.remove("active");
   console.log(data);
-  traerDatos("GET", data);
+  traerDatos(data, true);
   form.fields = strt[data];
   table.head = strt[data];
 
@@ -92,7 +92,7 @@ function SubmitData(event = null) {
   idSubmit = null;
   action = "POST";
   setTimeout(() => {
-    traerDatos("GET", page);
+    traerDatos(page, true);
   }, 1000);
 }
 function getData() {
@@ -100,9 +100,17 @@ function getData() {
   for (let key in strt[page]) {
     let ele = document.getElementById(key);
     let data = ele.value;
-    ele.value = null;
     if (data == "") data = null;
-    temp[key] = data;
+
+    if (strt[page][key]["type"] == "select") {
+      if (key == "client") temp[key] = { idClient: data };
+      else {
+        temp[key] = { id: data };
+      }
+    } else {
+      temp[key] = data;
+    }
+    ele.value = null;
   }
   console.log(temp);
   return temp;
@@ -142,6 +150,15 @@ class Form {
     let label = document.createElement("label");
     let input = document.createElement("input");
 
+    if (options.type != "select") {
+      input.setAttribute("type", options["type"]);
+      for (let key in options) {
+        input.setAttribute(key, options[key]);
+      }
+    } else {
+      input = document.createElement("select");
+      this.generateOpt(options.for, input);
+    }
     //Adicion de stilos
     div.classList.add("mb-3");
     label.classList.add("form-label");
@@ -150,14 +167,21 @@ class Form {
 
     label.textContent = title.toUpperCase();
     input.name = title;
-    input.setAttribute("type", options["type"]);
-    for (let key in options) {
-      input.setAttribute(key, options[key]);
-    }
+
     div.appendChild(label);
     div.appendChild(input);
 
     return div;
+  };
+  generateOpt = async function (page, input) {
+    let datos = await traerDatos(page);
+    console.log(datos);
+    datos.forEach((dato) => {
+      let opt = document.createElement("option");
+      opt.textContent = dato.name;
+      opt.value = dato.id || dato.idClient;
+      input.appendChild(opt);
+    });
   };
 }
 class Table {
@@ -239,36 +263,30 @@ class Table {
 var table = new Table();
 var form = new Form();
 
-function traerDatos(method, page, data = {}) {
+async function traerDatos(page, render) {
   let URL = `http://localhost:8080/api/${page}/all`;
-  console.log(URL);
+  //console.log(URL);
 
-  fetch(URL, {
-    method: method,
-    //body: JSON.stringify(data),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      console.log(data);
-      if (method == "GET") {
-        table.dataSet = data;
-        table.render();
-      }
-    });
+  let response = await fetch(URL, { method: "GET" });
+  let data = await response.json();
+
+  if (render) {
+    table.dataSet = data;
+    table.render();
+  }
+  return data;
 }
 function postData(page, data) {
-  let URL = `http://localhost:8080/api/${page}/all`;
+  let URL = `http://localhost:8080/api/${page}/save`;
   console.log(URL);
+  console.log(data);
   fetch(URL, {
     method: "POST",
     body: JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json",
+    },
   })
     .then((response) => response.json())
-    .then((data) => {
-      console.log(data);
-      if (method == "GET") {
-        table.dataSet = data;
-        table.render();
-      }
-    });
+    .then((data) => {});
 }
