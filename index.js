@@ -1,48 +1,64 @@
 var strt = {
   Skate: {
-    name: { type: "text", maxlength: "45", edition: true },
-    brand: { type: "text", maxlength: "45", edition: true },
-    description: { type: "text", maxlength: "250", edition: true },
+    name: { type: "text", maxlength: "45", edition: true, view: true },
+    brand: { type: "text", maxlength: "45", edition: true, view: true },
+    description: { type: "text", maxlength: "250", edition: true, view: true },
     year: {
       type: "number",
       min: "1000",
       max: "9999",
       value: "2000",
       edition: true,
+      view: true,
     },
-    category: { type: "select", for: "Category", edition: false },
+    category: { type: "select", for: "Category", edition: false, view: true },
   },
   Client: {
-    name: { type: "text", maxlength: "45", edition: true },
-    email: { type: "text", maxlength: "45", edition: false },
-    password: { type: "text", maxlength: "250", edition: true },
+    name: { type: "text", maxlength: "45", edition: true, view: true },
+    email: { type: "text", maxlength: "45", edition: false, view: true },
+    password: { type: "text", maxlength: "250", edition: true, view: false },
     age: {
       type: "number",
       min: "0",
       max: "200",
       value: "0",
       edition: true,
+      view: true,
     },
   },
   Message: {
-    messageText: { type: "text", maxlength: "250", edition: true },
-    client: { type: "select", for: "Client", edition: false },
-    skate: { type: "select", for: "Skate", edition: false },
+    messageText: { type: "text", maxlength: "250", edition: true, view: true },
+    client: { type: "select", for: "Client", edition: false, view: true },
+    skate: { type: "select", for: "Skate", edition: false, view: true },
   },
   Category: {
-    name: { type: "text", maxlength: "45", edition: true },
-    description: { type: "text", maxlength: "250", edition: true },
+    name: { type: "text", maxlength: "45", edition: true, view: true },
+    description: { type: "text", maxlength: "250", edition: true, view: true },
   },
   Reservation: {
-    client: { type: "select", for: "Client", edition: false },
-    skate: { type: "select", for: "Skate", edition: false },
-    startDate: { type: "date", edition: true },
-    devolutionDate: { type: "date", edition: true },
+    client: { type: "select", for: "Client", edition: false, view: true },
+    skate: { type: "select", for: "Skate", edition: false, view: true },
+    startDate: { type: "date", edition: true, view: true },
+    devolutionDate: { type: "date", edition: true, view: true },
   },
 };
 var tables = {
-  Skate: ["name"],
+  Skate: ["name", "brand", "description", "category"],
+  Category: ["name", "description", "skates"],
+  Message: ["messageText", "skate", "client"],
+  Reservation: [
+    "idReservation",
+    "startDate",
+    "devolutionDate",
+    "idClient",
+    "name",
+    "email",
+    "skate",
+    "status",
+  ],
+  Client: ["idClient", "name", "email", "age"],
 };
+
 var page = "Category";
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".nav-link").forEach((link) => {
@@ -54,49 +70,42 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   });
   form.fields = strt[page];
-  table.head = strt[page];
+  table.head = tables[page];
   traerDatos(page, true);
   form.render();
-
-  document.getElementById("submit").addEventListener("click", function (event) {
-    SubmitData(event);
-  });
 });
-function goTo(data) {
+function goTo(page) {
   link = document.querySelector(".active");
   link.classList.remove("active");
-  console.log(data);
-  traerDatos(data, true);
-  form.fields = strt[data];
-  table.head = strt[data];
-
+  console.log(page);
+  form.fields = strt[page];
+  table.head = tables[page];
+  traerDatos(page, true);
+  form.formData = {};
   form.render();
-  table.render();
 }
 var idSubmit = null;
 var action = "POST";
-function SubmitData(event = null) {
-  if (event != null) event.preventDefault();
+async function SubmitData(event = null) {
+  if (event != null) await event.preventDefault();
   let data = {};
   if (action == "DELETE") {
-    data = { id: parseInt(idSubmit) };
-    console.log(action);
-    traerDatos(action, page, data);
+    postData();
   } else {
-    data = getData();
-    postData(page, data);
+    data = await getData(form.formData);
+    await postData(data);
   }
 
   console.log(data);
-
   idSubmit = null;
+  form.formData = {};
   action = "POST";
-  setTimeout(() => {
+
+  setTimeout(function () {
     traerDatos(page, true);
-  }, 1000);
+  }, 500);
 }
-function getData() {
-  let temp = {};
+function getData(temp = {}) {
   for (let key in strt[page]) {
     let ele = document.getElementById(key);
     let data = ele.value;
@@ -111,8 +120,10 @@ function getData() {
       temp[key] = data;
     }
     ele.value = null;
+    ele.disabled = false;
   }
-  console.log(temp);
+
+  //console.log(temp);
   return temp;
 }
 class Form {
@@ -120,7 +131,32 @@ class Form {
     this.fields = fields;
   }
   formView = document.getElementById("form");
-
+  formData = {};
+  getId = function (data) {
+    for (let key in data) {
+      if (key.indexOf("id") != -1) {
+        this.formData[key] = data[key];
+      }
+    }
+  };
+  searchOpt = function (opt, ele) {
+    for (let i = 0; i < ele.options.length; i++) {
+      if (ele.options[i].text == opt) {
+        ele.selectedIndex = i;
+        console.log(i);
+      }
+    }
+  };
+  fillFields = function (params) {
+    for (let key in strt[page]) {
+      let ele = document.getElementById(key);
+      ele.value = params[key];
+      if (strt[page][key]["type"] == "select")
+        this.searchOpt(params[key]["name"], ele);
+      ele.disabled = !strt[page][key]["edition"];
+    }
+    this.getId(params);
+  };
   render = function () {
     //console.log(this.fields)
     this.formView.innerHTML = "";
@@ -175,7 +211,7 @@ class Form {
   };
   generateOpt = async function (page, input) {
     let datos = await traerDatos(page);
-    console.log(datos);
+    //console.log(datos);
     datos.forEach((dato) => {
       let opt = document.createElement("option");
       opt.textContent = dato.name;
@@ -185,33 +221,46 @@ class Form {
   };
 }
 class Table {
-  constructor(head = {}, dataSet = {}) {
+  constructor(head = [], dataSet = {}) {
     this.head = head;
     this.dataSet = dataSet;
     this.table = document.getElementById("table");
   }
-  render = function () {
+  renderHead = function () {
     this.table.innerHTML = "";
     //console.log("column")
     let fragment = new DocumentFragment();
     //creacion de elementos tabla
     let thead = document.createElement("thead");
-    let tbody = document.createElement("tbody");
-    //creacion fila ppara header
     let header = document.createElement("tr");
-    //Creacion elementos de header en base al los obj iniciales
-    for (let key in this.head) {
-      header.appendChild(this.createColumn(key, "th"));
-    }
+    this.head.forEach((head) => {
+      header.appendChild(this.createColumn(head, "th"));
+    });
+
     header.appendChild(this.createColumn("Actions", "th"));
     thead.appendChild(header);
     fragment.appendChild(thead);
+    this.table.appendChild(fragment);
+  };
+  render = function () {
+    let fragment = new DocumentFragment();
+    let tbody = document.createElement("tbody");
+    //creacion fila ppara header
+
+    //Creacion elementos de header en base al los obj iniciales
+
     this.dataSet.forEach((data) => {
       //console.log(data);
+
       let tmp = document.createElement("tr");
-      for (let key in strt[page]) {
-        tmp.appendChild(this.createColumn(data[key], "td"));
-      }
+      let dataTemp = processData(data);
+      this.head.forEach((key) => {
+        //console.log(key);
+        let info = dataTemp[key];
+
+        tmp.appendChild(this.createColumn(info, "td"));
+      });
+
       let column = document.createElement("td");
       let button = document.createElement("button");
       button.classList.add("btn");
@@ -238,23 +287,22 @@ class Table {
     this.table.appendChild(fragment);
   };
   delete = function (data) {
-    idSubmit = data["id"];
+    idSubmit = data["id"] || data["idReservation"] || data["idClient"];
+
     action = "DELETE";
     SubmitData();
   };
   sendToEdit = function (data) {
-    idSubmit = data["id"];
     action = "PUT";
-    for (let key in data) {
-      let ele = document.getElementById(key);
-      ele.value = data[key];
-    }
+    form.fillFields(data);
   };
 
   createColumn = function (data, type) {
     let column = document.createElement(type);
     column.scope = "col";
-    column.textContent = data;
+    let txt = data;
+
+    column.textContent = txt;
 
     return column;
   };
@@ -264,6 +312,8 @@ var table = new Table();
 var form = new Form();
 
 async function traerDatos(page, render) {
+  //console.log("hear");
+  await table.renderHead();
   let URL = `http://localhost:8080/api/${page}/all`;
   //console.log(URL);
 
@@ -276,17 +326,70 @@ async function traerDatos(page, render) {
   }
   return data;
 }
-function postData(page, data) {
-  let URL = `http://localhost:8080/api/${page}/save`;
+async function deleteEle() {}
+async function postData(data = {}) {
+  let opt = { POST: "save", PUT: "update", DELETE: idSubmit };
+  let URL = `http://localhost:8080/api/${page}/${opt[action]}`;
   console.log(URL);
-  console.log(data);
+  //console.log(data);
   fetch(URL, {
-    method: "POST",
+    method: action,
     body: JSON.stringify(data),
     headers: {
       "Content-Type": "application/json",
     },
   })
     .then((response) => response.json())
-    .then((data) => {});
+    .then((data) => {
+      return data;
+    });
+}
+function formattedDate(date) {
+  return new Date(date).toLocaleString("en-US", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+}
+function processData(info) {
+  //console.log(data);
+  let data = Object.assign({}, info);
+  switch (page) {
+    case "Skate":
+      delete data.id;
+      data.category = data.category.name;
+      break;
+    case "Client":
+      delete data.id;
+      delete data.password;
+      break;
+    case "Message":
+      delete data.id;
+      data.client = data.client.name;
+      data.skate = data.skate.name;
+      break;
+    case "Category":
+      delete data.id;
+      let skatest = "";
+      try {
+        data.skates.forEach((dato) => {
+          skatest = skatest + "-" + dato.name;
+        });
+      } catch {}
+      data.skates = skatest;
+      break;
+    case "Reservation":
+      cli = data.client;
+      data["idClient"] = cli.idClient;
+      data["name"] = cli.name;
+      data["email"] = cli.email;
+      delete data.client;
+      delete data.score;
+      data.skate = data.skate.name;
+      data.startDate = formattedDate(data.startDate);
+      data.devolutionDate = formattedDate(data.devolutionDate);
+      break;
+  }
+  //console.log(data);
+  return data;
 }
